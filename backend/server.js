@@ -48,6 +48,20 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  pool: true, // Use pooling for bulk emails
+  maxConnections: 5,
+  maxMessages: 100,
+  connectionTimeout: 30000, // 30 seconds
+  greetingTimeout: 30000,   // 30 seconds
+});
+
+// Verify SMTP connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('❌ SMTP Connection Error:', error);
+  } else {
+    console.log('✅ SMTP Server is ready to take our messages');
+  }
 });
 
 // Email validation function
@@ -67,10 +81,10 @@ function parseCSV(filePath) {
       .on('data', (row) => {
         // Try to find email in the row (case-insensitive)
         const email = row.email || row.Email || row.EMAIL || Object.values(row)[0];
-        
+
         if (email && typeof email === 'string') {
           const trimmedEmail = email.trim().toLowerCase();
-          
+
           // Validate and deduplicate
           if (isValidEmail(trimmedEmail) && !seenEmails.has(trimmedEmail)) {
             emails.push(trimmedEmail);
@@ -91,7 +105,7 @@ function parseCSV(filePath) {
 async function sendEmailsInBatches(emails, subject, body) {
   const batchSize = parseInt(process.env.BATCH_SIZE) || 50;
   const dailyLimit = parseInt(process.env.DAILY_LIMIT) || 300;
-  
+
   const results = {
     total: emails.length,
     sent: 0,
@@ -101,7 +115,7 @@ async function sendEmailsInBatches(emails, subject, body) {
 
   // Respect daily limit
   const emailsToSend = emails.slice(0, dailyLimit);
-  
+
   if (emails.length > dailyLimit) {
     console.log(`⚠️  Warning: ${emails.length} emails provided, but only ${dailyLimit} will be sent (daily limit)`);
   }
@@ -129,7 +143,7 @@ async function sendEmailsInBatches(emails, subject, body) {
     });
 
     await Promise.all(batchPromises);
-    
+
     // Small delay between batches to avoid rate limiting
     if (i + batchSize < emailsToSend.length) {
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -194,7 +208,7 @@ app.post('/send-bulk-email', upload.single('csvFile'), async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error:', error);
-    
+
     // Clean up uploaded file if it exists
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
