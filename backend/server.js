@@ -42,17 +42,20 @@ if (!fs.existsSync('uploads')) {
 // Configure Nodemailer with Brevo SMTP
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT),
-  secure: false, // true for 465, false for other ports
+  port: 465, // Use SSL port
+  secure: true, // true for 465
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  pool: true, // Use pooling for bulk emails
+  pool: true,
   maxConnections: 5,
   maxMessages: 100,
-  connectionTimeout: 30000, // 30 seconds
-  greetingTimeout: 30000,   // 30 seconds
+  connectionTimeout: 60000, // Increase to 60 seconds
+  greetingTimeout: 60000,
+  socketTimeout: 60000,
+  debug: true, // Enable debug output
+  logger: true // Log to console
 });
 
 // Verify SMTP connection on startup
