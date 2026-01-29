@@ -40,22 +40,35 @@ if (!fs.existsSync('uploads')) {
 }
 
 // Configure Nodemailer with Brevo SMTP
+// Sanitize environment variables (remove spaces if any)
+const smtpHost = (process.env.SMTP_HOST || 'smtp-relay.brevo.com').trim();
+const smtpPort = parseInt((process.env.SMTP_PORT || '587').trim());
+const smtpUser = (process.env.SMTP_USER || '').trim();
+const smtpPass = (process.env.SMTP_PASS || '').trim();
+
+console.log(`📡 SMTP Config: Host=${smtpHost}, Port=${smtpPort}, User=${smtpUser}`);
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: 465, // Use SSL port
-  secure: true, // true for 465
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort === 465, // Only true for 465
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: smtpUser,
+    pass: smtpPass,
   },
   pool: true,
   maxConnections: 5,
   maxMessages: 100,
-  connectionTimeout: 60000, // Increase to 60 seconds
+  connectionTimeout: 60000,
   greetingTimeout: 60000,
   socketTimeout: 60000,
-  debug: true, // Enable debug output
-  logger: true // Log to console
+  tls: {
+    // Do not fail on invalid certs (common issue in cloud environments)
+    rejectUnauthorized: false,
+    minVersion: 'TLSv1.2'
+  },
+  debug: true,
+  logger: true
 });
 
 // Verify SMTP connection on startup
