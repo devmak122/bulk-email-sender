@@ -1,0 +1,43 @@
+services:
+  # Backend Service
+  - type: web
+    name: bulk-email-sender-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: FROM_NAME
+        value: Bulk Email Sender
+      - key: DAILY_LIMIT
+        value: 500
+      - key: BATCH_SIZE
+        value: 50
+
+  # Frontend Service
+  - type: web
+    name: bulk-email-sender-frontend
+    env: static
+    region: oregon
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: bulk-email-sender-backend
+          envVarKey: RENDER_EXTERNAL_URL
